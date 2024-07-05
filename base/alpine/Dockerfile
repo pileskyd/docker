@@ -1,19 +1,9 @@
 FROM alpine:latest
 
-# Установка glibc
-ENV ALPINE_GLIBC_REPO https://github.com/sgerrand/alpine-pkg-glibc
-ENV ALPINE_GLIBC_VERSION 2.35-r0
-
-RUN apk update && apk upgrade && \
-  apk add --no-cache bash tzdata sudo curl xz git ca-certificates openssl make pkgconfig && \
-  apk add --no-cache binutils && \
-  curl -Lo /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub && \
-  curl -Lo glibc-${ALPINE_GLIBC_VERSION}.apk https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${ALPINE_GLIBC_VERSION}/glibc-${ALPINE_GLIBC_VERSION}.apk && \
-  curl -Lo glibc-bin-${ALPINE_GLIBC_VERSION}.apk https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${ALPINE_GLIBC_VERSION}/glibc-bin-${ALPINE_GLIBC_VERSION}.apk && \
-  apk add --no-cache glibc-${ALPINE_GLIBC_VERSION}.apk glibc-bin-${ALPINE_GLIBC_VERSION}.apk && \
-  /usr/glibc-compat/bin/localedef -i en_US -f UTF-8 en_US.UTF-8 && \
-  echo "export LANG=en_US.UTF-8" > /etc/profile.d/locale.sh && \
-  rm -rf /var/cache/apk/* glibc-${ALPINE_GLIBC_VERSION}.apk glibc-bin-${ALPINE_GLIBC_VERSION}.apk
+# Установка bash и других необходимых пакетов
+RUN apk update && \
+  apk add --no-cache bash tzdata sudo curl xz git ca-certificates openssl make pkgconfig musl libc6-compat && \
+  update-ca-certificates
 
 # Установка временной зоны Владивосток
 RUN cp /usr/share/zoneinfo/Asia/Vladivostok /etc/localtime && \
@@ -35,8 +25,8 @@ RUN set -o pipefail && curl -L https://nixos.org/nix/install | bash && \
   printf 'if [ -d $HOME/.nix-profile/etc/profile.d ]; then\n for i in $HOME/.nix-profile/etc/profile.d/*.sh; do\n if [ -r $i ]; then\n . $i\n fi\n done\n fi\n' >> /root/.profile && \
   printf 'PATH=$NIXPACKS_PATH:$PATH' >> /root/.profile
 
-ENV \
-  ENV=/etc/profile \
+# Определение переменных окружения
+ENV ENV=/etc/profile \
   USER=root \
   PATH=/nix/var/nix/profiles/default/bin:/nix/var/nix/profiles/default/sbin:/bin:/sbin:/usr/bin:/usr/sbin \
   GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt \
@@ -46,6 +36,7 @@ ENV \
   NIXPKGS_ALLOW_UNFREE=1 \
   NIXPKGS_ALLOW_INSECURE=1 \
   LD_LIBRARY_PATH=/usr/lib \
-  CPATH=~/.nix-profile/include:$CPATH \
-  LIBRARY_PATH=~/.nix-profile/lib:$LIBRARY_PATH \
-  QTDIR=~/.nix-profile:$QTDIR
+  CPATH=/root/.nix-profile/include:$CPATH \
+  LIBRARY_PATH=/root/.nix-profile/lib:$LIBRARY_PATH \
+  QTDIR=/root/.nix-profile:$QTDIR \
+  NIXPACKS_PATH=/nix/var/nix/profiles/default/bin
