@@ -1,19 +1,9 @@
 FROM alpine:latest
 
-# Установка glibc
-ENV ALPINE_GLIBC_REPO https://github.com/sgerrand/alpine-pkg-glibc
-ENV ALPINE_GLIBC_VERSION 2.35-r0
-
-RUN apk update && apk upgrade && \
+# Установка bash и других необходимых пакетов
+RUN apk update && \
   apk add --no-cache bash tzdata sudo curl xz git ca-certificates openssl make pkgconfig && \
-  apk add --no-cache binutils && \
-  curl -Lo /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub && \
-  curl -Lo glibc-${ALPINE_GLIBC_VERSION}.apk https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${ALPINE_GLIBC_VERSION}/glibc-${ALPINE_GLIBC_VERSION}.apk && \
-  curl -Lo glibc-bin-${ALPINE_GLIBC_VERSION}.apk https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${ALPINE_GLIBC_VERSION}/glibc-bin-${ALPINE_GLIBC_VERSION}.apk && \
-  apk add --no-cache glibc-${ALPINE_GLIBC_VERSION}.apk glibc-bin-${ALPINE_GLIBC_VERSION}.apk && \
-  /usr/glibc-compat/bin/localedef -i en_US -f UTF-8 en_US.UTF-8 && \
-  echo "export LANG=en_US.UTF-8" > /etc/profile.d/locale.sh && \
-  rm -rf /var/cache/apk/* glibc-${ALPINE_GLIBC_VERSION}.apk glibc-bin-${ALPINE_GLIBC_VERSION}.apk
+  update-ca-certificates
 
 # Установка временной зоны Владивосток
 RUN cp /usr/share/zoneinfo/Asia/Vladivostok /etc/localtime && \
