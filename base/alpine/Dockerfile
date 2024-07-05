@@ -1,29 +1,29 @@
-FROM alpine:3.20
+FROM alpine:latest
 
-ARG DEBIAN_FRONTEND=noninteractive
-ARG TZ=Asia/Vladivostok
+# Установка bash и других необходимых пакетов
+RUN apk update && \
+  apk add --no-cache bash tzdata sudo curl xz git ca-certificates openssl make pkgconfig && \
+  update-ca-certificates
 
-RUN apk update && apk upgrade \
-  && apk add --no-cache bash sudo locales curl tzdata xz make git openssl ca-certificates \
-  && apk add --no-cache --virtual .build-deps \
-  gnupg \
-  libgcc \
-  libstdc++ \
-  && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
-  && echo "${TZ}" > /etc/timezone \
-  && mkdir -m 0755 /nix && mkdir -m 0755 /etc/nix && addgroup -S nixbld && chown root /nix \
-  && printf 'sandbox = false\nfilter-syscalls = false\n' > /etc/nix/nix.conf \
-  && printf 'experimental-features = nix-command\n' >> /etc/nix/nix.conf \
-  && for n in $(seq 1 10); do adduser -S -G nixbld -s /bin/false -h /var/empty "nixbld$n"; done \
-  && apk del .build-deps
+# Установка временной зоны Владивосток
+RUN cp /usr/share/zoneinfo/Asia/Vladivostok /etc/localtime && \
+  echo "Asia/Vladivostok" > /etc/timezone && \
+  apk del tzdata
 
-SHELL ["/bin/bash", "-ol", "pipefail", "-c"]
+# Настройка nix
+RUN mkdir -m 0755 /nix && mkdir -m 0755 /etc/nix && \
+  addgroup -S nixbld && chown root /nix && \
+  printf 'sandbox = false \nfilter-syscalls = false\n' > /etc/nix/nix.conf && \
+  printf 'experimental-features = nix-command\n' >> /etc/nix/nix.conf && \
+  for n in $(seq 1 10); do adduser -S -G nixbld -H -h /var/empty -D -s /sbin/nologin "nixbld$n"; done
 
-RUN set -o pipefail && curl -L https://nixos.org/nix/install | bash \
-  && /nix/var/nix/profiles/default/bin/nix-channel --remove nixpkgs \
-  && /nix/var/nix/profiles/default/bin/nix-collect-garbage --delete-old \
-  && printf 'if [ -d $HOME/.nix-profile/etc/profile.d ]; then\n for i in $HOME/.nix-profile/etc/profile.d/*.sh; do\n if [ -r $i ]; then\n . $i\n done\n fi\n' >> /root/.profile \
-  && printf 'PATH=$NIXPACKS_PATH:$PATH' >> /root/.profile
+# Установка nix
+SHELL ["/bin/bash", "-c"]
+RUN set -o pipefail && curl -L https://nixos.org/nix/install | bash && \
+  /nix/var/nix/profiles/default/bin/nix-channel --remove nixpkgs && \
+  /nix/var/nix/profiles/default/bin/nix-collect-garbage --delete-old && \
+  printf 'if [ -d $HOME/.nix-profile/etc/profile.d ]; then\n for i in $HOME/.nix-profile/etc/profile.d/*.sh; do\n if [ -r $i ]; then\n . $i\n fi\n done\n fi\n' >> /root/.profile && \
+  printf 'PATH=$NIXPACKS_PATH:$PATH' >> /root/.profile
 
 ENV \
   ENV=/etc/profile \
@@ -39,5 +39,3 @@ ENV \
   CPATH=~/.nix-profile/include:$CPATH \
   LIBRARY_PATH=~/.nix-profile/lib:$LIBRARY_PATH \
   QTDIR=~/.nix-profile:$QTDIR
-
-ENTRYPOINT ["/bin/bash"]
