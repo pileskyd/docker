@@ -9,7 +9,7 @@ on:
 # Defines custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/nixpacks-alpine
+  IMAGE_NAME: ${{ github.repository }}/nixpacks-nix
 
 jobs:
   build-and-push-image:
@@ -52,9 +52,9 @@ jobs:
         id: push
         uses: docker/build-push-action@v4
         with:
-          context: base/alpine
+          context: base/nix
           push: true
-          platforms: linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
