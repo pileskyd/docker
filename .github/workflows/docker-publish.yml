@@ -26,6 +26,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./base/alpine
+          context: .
+          file: base/alpine/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository }}/nixpacks-alpine:latest
